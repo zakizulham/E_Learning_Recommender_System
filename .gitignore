@@ -1,0 +1,38 @@
+# Mengabaikan file environment yang berisi rahasia (API Keys, DB Passwords)
+.env
+.env.local
+.env.*
+
+# Mengabaikan data mentah dan data turunan
+*.csv
+*.json
+*.sqlite
+
+# Mengabaikan model Machine Learning yang sudah dilatih
+*.pkl
+*.joblib
+*.h5
+
+# Mengabaikan file cache Python
+__pycache__/
+*.pyc
+
+# Mengabaikan virtual environment Python
+venv/
+env/
+.venv/
+
+# Mengabaikan dependensi Node.js (React/Vite)
+node_modules/
+
+# Mengabaikan build folder dari Vite/React
+dist/
+
+# Mengabaikan file log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mengabaikan file sistem operasi
+.DS_Store
+Thumbs.db
