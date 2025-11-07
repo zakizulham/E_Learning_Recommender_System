@@ -28,6 +28,9 @@ node_modules/
 # Mengabaikan build folder dari Vite/React
 dist/
 
+# Mengabaikan dataset
+data/
+
 # Mengabaikan file log
 npm-debug.log*
 yarn-debug.log*
