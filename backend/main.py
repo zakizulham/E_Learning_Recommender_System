@@ -5,14 +5,30 @@ from pydantic import BaseModel
 import os
 
 # --- 1. INISIALISASI APLIKASI ---
-# Ini adalah "server" FastAPI kita
 app = FastAPI(
     title="API Gaya Belajar Siswa",
     description="API untuk memprediksi dan mengambil persona gaya belajar siswa.",
     version="1.0"
 )
 
-# --- 2. KAMUS PERSONA ---
+# --- 2. TAMBAHKAN BLOK INI UNTUK CORS ---
+# Ini mengizinkan server frontend (React) kita untuk berbicara
+# dengan server backend (FastAPI) kita.
+origins = [
+    "http://localhost:5173", # Port default Vite/React
+    "http://localhost:3000", # Port React (jaga-jaga)
+]
+
+app.add_middleware(
+    CORSMiddleware, # pyright: ignore[reportUndefinedVariable]
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Izinkan semua metode (GET, POST, dll)
+    allow_headers=["*"], # Izinkan semua header
+)
+# --- AKHIR BLOK CORS ---
+
+# --- 3. KAMUS PERSONA ---
 # Di sinilah kita "menerjemahkan" output cluster (0, 1, 2, 3)
 # menjadi sesuatu yang bisa dibaca manusia.
 # PENTING: Sesuaikan ini dengan analisis kita di Notebook 03!
@@ -35,7 +51,7 @@ PERSONA_MAP = {
     }
 }
 
-# --- 3. MEMUAT ARTEFAK (MODEL & DATA) ---
+# --- 4. MEMUAT ARTEFAK ---
 # Kita muat semua file yang kita butuhkan saat server pertama kali menyala.
 
 # Tentukan path relatif dari file main.py
@@ -63,7 +79,7 @@ except FileNotFoundError as e:
     df_clustered = None # Gagal memuat
 
 
-# --- 4. TENTUKAN MODEL DATA (UNTUK RESPONSE) ---
+# --- 5. TENTUKAN MODEL DATA ---
 # Ini memberi tahu FastAPI format JSON seperti apa yang akan kita kirim kembali
 class LearningStyleResponse(BaseModel):
     user_id: int
@@ -71,7 +87,7 @@ class LearningStyleResponse(BaseModel):
     persona_name: str
     persona_description: str
 
-# --- 5. BUAT ENDPOINT API KITA ---
+# --- 6. BUAT ENDPOINT ---
 
 @app.get("/api/v1/learning-style/{user_id}", response_model=LearningStyleResponse)
 async def get_learning_style(user_id: int):
