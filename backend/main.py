@@ -1,37 +1,34 @@
 import pandas as pd
 import joblib
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
+from fastapi.middleware.cors import CORSMiddleware  # <--- INI PERBAIKANNYA
 
-# --- 1. INISIALISASI APLIKASI ---
+# Inisialisasi Aplikasi FastAPI
 app = FastAPI(
     title="API Gaya Belajar Siswa",
     description="API untuk memprediksi dan mengambil persona gaya belajar siswa.",
     version="1.0"
 )
 
-# --- 2. TAMBAHKAN BLOK INI UNTUK CORS ---
-# Ini mengizinkan server frontend (React) kita untuk berbicara
-# dengan server backend (FastAPI) kita.
+# Konfigurasi CORS
+# Izinkan frontend React kita (localhost:5173) untuk "berbicara" dengan backend ini.
 origins = [
-    "http://localhost:5173", # Port default Vite/React
-    "http://localhost:3000", # Port React (jaga-jaga)
+    "http://localhost:5173",  # Port default Vite/React
+    "http://localhost:3000",  # Port React (jaga-jaga)
 ]
 
 app.add_middleware(
-    CORSMiddleware, # pyright: ignore[reportUndefinedVariable]
+    CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Izinkan semua metode (GET, POST, dll)
-    allow_headers=["*"], # Izinkan semua header
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# --- AKHIR BLOK CORS ---
 
-# --- 3. KAMUS PERSONA ---
-# Di sinilah kita "menerjemahkan" output cluster (0, 1, 2, 3)
-# menjadi sesuatu yang bisa dibaca manusia.
-# PENTING: Sesuaikan ini dengan analisis kita di Notebook 03!
+# Kamus Definisi Persona
+# Menerjemahkan cluster_id (int) -> info persona (string)
 PERSONA_MAP = {
     0: {
         "name": "Si Penyelesai Efisien",
@@ -51,44 +48,39 @@ PERSONA_MAP = {
     }
 }
 
-# --- 4. MEMUAT ARTEFAK ---
-# Kita muat semua file yang kita butuhkan saat server pertama kali menyala.
-
-# Tentukan path relatif dari file main.py
+# Pemuatan Artefak (Model & Data) saat Startup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, '../data/user_features_with_clusters.csv')
 MODEL_PATH = os.path.join(BASE_DIR, 'kmeans_model.joblib')
 SCALER_PATH = os.path.join(BASE_DIR, 'scaler.joblib')
 
 try:
-    # Muat data CSV yang berisi user_id dan cluster_id mereka
+    # Data CSV adalah yang utama untuk V1 (mengambil cluster yang sudah ada)
     df_clustered = pd.read_csv(DATA_PATH, index_col='user_id')
     print(f"Berhasil memuat data cluster: {DATA_PATH}")
 
-    # Muat model dan scaler (kita akan pakai ini di V2, tapi muat sekarang)
+    # Model & scaler dimuat untuk V2 (prediksi real-time)
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
-    print(f"Berhasil memuat model dan scaler: {MODEL_PATH}, {SCALER_PATH}")
+    print(f"Berhasil memuat model dan scaler.")
 
 except FileNotFoundError as e:
     print(f"Error: File tidak ditemukan. Pastikan file ada di path yang benar.")
     print(e)
-    # Jika file tidak ada, kita tidak bisa menjalankan server.
-    # Untuk V1, kita hanya butuh CSV, jadi kita bisa beri 'pass' jika model/scaler belum ada
-    # tapi untuk sekarang, kita asumsikan semua ada.
-    df_clustered = None # Gagal memuat
+    df_clustered = None
+except Exception as e:
+    print(f"Error saat memuat artefak: {e}")
+    df_clustered = None
 
 
-# --- 5. TENTUKAN MODEL DATA ---
-# Ini memberi tahu FastAPI format JSON seperti apa yang akan kita kirim kembali
+# Model Data Pydantic (Validasi Respons)
 class LearningStyleResponse(BaseModel):
     user_id: int
     cluster: int
     persona_name: str
     persona_description: str
 
-# --- 6. BUAT ENDPOINT ---
-
+# Endpoint API
 @app.get("/api/v1/learning-style/{user_id}", response_model=LearningStyleResponse)
 async def get_learning_style(user_id: int):
     """
@@ -98,17 +90,16 @@ async def get_learning_style(user_id: int):
         raise HTTPException(status_code=500, detail="Data cluster tidak dimuat di server.")
 
     try:
-        # 1. Cari user_id di DataFrame kita
+        # 1. Cari user_id di DataFrame
         user_data = df_clustered.loc[user_id]
         
         # 2. Ambil label clusternya
-        cluster_label = int(user_data['cluster']) # pyright: ignore[reportArgumentType]
+        cluster_label = int(user_data['cluster'])
         
-        # 3. Cari persona di kamus kita
+        # 3. Cari persona di kamus
         persona_info = PERSONA_MAP.get(cluster_label)
         
         if persona_info is None:
-            # Ini seharusnya tidak terjadi jika data kita konsisten
             raise HTTPException(status_code=500, detail=f"Cluster {cluster_label} tidak memiliki definisi persona.")
 
         # 4. Kembalikan respons JSON yang rapi
@@ -120,7 +111,7 @@ async def get_learning_style(user_id: int):
         )
 
     except KeyError:
-        # Jika .loc[user_id] gagal, berarti user_id tidak ada di data kita
+        # Jika .loc[user_id] gagal (KeyError), berarti user_id tidak ada
         raise HTTPException(
             status_code=404, 
             detail=f"User ID {user_id} tidak ditemukan. User ini mungkin tidak aktif (kurang dari 5 interaksi)."
