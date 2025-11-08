@@ -76,7 +76,7 @@ graph LR;
 
 **1. Clone Repositori**
 ```bash
-git clone [https://github.com/zakizulham/E_Learning_Recommender_System](https://github.com/zakizulham/E_Learning_Recommender_System)
+git clone https://github.com/zakizulham/E_Learning_Recommender_System.git
 cd E_Learning_Recommender_System/
 ```
 
