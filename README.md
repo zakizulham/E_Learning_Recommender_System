@@ -11,7 +11,7 @@
 Ini adalah proyek end-to-end yang menganalisis perilaku siswa pada platform MOOC untuk mengidentifikasi gaya belajar mereka secara otomatis menggunakan K-Means clustering. Hasilnya disajikan dalam dashboard interaktif yang dibangun dengan React (Vite).
 
 
-<!-- [Image of the final dashboard application] -->
+![Screenshot Dashboard Aplikasi](docs/img/dashboard-screenshot.webp)
 
 ## Fitur Utama
 
